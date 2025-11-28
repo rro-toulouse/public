@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Commande Vocale - Boucherie</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .record-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 120px;
+            height: 120px;
+            font-size: 18px;
+            cursor: pointer;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
+        }
+
+        .record-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(231, 76, 60, 0.6);
+        }
+
+        .record-btn.recording {
+            background: #c0392b;
+            animation: pulse 1.5s infinite;
+        }
+
+        .record-btn.processing {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+        }
+
+        .record-btn .icon {
+            font-size: 40px;
+            margin-bottom: 5px;
+        }
+
+        .status {
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .status.show {
+            display: block;
+        }
+
+        .status.info {
+            background: #d4edff;
+            color: #0066cc;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .transcription {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .transcription.show {
+            display: block;
+        }
+
+        .transcription h3 {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .transcription p {
+            color: #333;
+            font-style: italic;
+        }
+
+        .audio-player {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .audio-player.show {
+            display: block;
+        }
+
+        audio {
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .config {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .config h3 {
+            font-size: 16px;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .config input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .config label {
+            display: block;
+            margin-bottom: 5px;
+            color: #666;
+            font-size: 13px;
+        }
+
+        .timer {
+            text-align: center;
+            font-size: 18px;
+            color: #e74c3c;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🥩 Commande Vocale</h1>
+        <p class="subtitle">Appuyez pour enregistrer votre commande</p>
+
+        <div class="config">
+            <h3>⚙️ Configuration</h3>
+            <label for="webhookUrl">URL du Webhook n8n :</label>
+            <input 
+                type="text" 
+                id="webhookUrl" 
+                placeholder="https://votre-n8n.com/webhook/commande-vocale"
+                value="http://localhost:5678/webhook/commande-vocale"
+            >
+        </div>
+
+        <div class="controls">
+            <button class="record-btn" id="recordBtn">
+                <span class="icon">🎤</span>
+                <span class="text">Appuyer</span>
+            </button>
+            <div class="timer" id="timer" style="display: none;">00:00</div>
+        </div>
+
+        <div class="status" id="status"></div>
+        
+        <div class="transcription" id="transcription">
+            <h3>📝 Transcription :</h3>
+            <p id="transcriptionText"></p>
+        </div>
+
+        <div class="audio-player" id="audioPlayer">
+            <h3>🔊 Réponse audio :</h3>
+            <audio id="audioResponse" controls></audio>
+        </div>
+    </div>
+
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+        let isRecording = false;
+        let startTime;
+        let timerInterval;
+
+        const recordBtn = document.getElementById('recordBtn');
+        const statusDiv = document.getElementById('status');
+        const transcriptionDiv = document.getElementById('transcription');
+        const transcriptionText = document.getElementById('transcriptionText');
+        const audioPlayerDiv = document.getElementById('audioPlayer');
+        const audioResponse = document.getElementById('audioResponse');
+        const webhookUrlInput = document.getElementById('webhookUrl');
+        const timerDiv = document.getElementById('timer');
+
+        // Demander l'accès au microphone au chargement
+        navigator.mediaDevices.getUserMedia({ audio: true })
+            .then(stream => {
+                console.log('Microphone autorisé');
+            })
+            .catch(err => {
+                showStatus('Erreur : Impossible d\'accéder au microphone. Vérifiez les permissions.', 'error');
+            });
+
+        recordBtn.addEventListener('click', toggleRecording);
+
+        async function toggleRecording() {
+            if (isRecording) {
+                stopRecording();
+            } else {
+                startRecording();
+            }
+        }
+
+        async function startRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = (event) => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/mpeg' });
+                    await sendAudioToN8n(audioBlob);
+                    
+                    // Arrêter le stream pour libérer le micro
+                    stream.getTracks().forEach(track => track.stop());
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+                
+                recordBtn.classList.add('recording');
+                recordBtn.querySelector('.text').textContent = 'Arrêter';
+                recordBtn.querySelector('.icon').textContent = '⏹️';
+                
+                showStatus('🎙️ Enregistrement en cours...', 'info');
+                
+                // Démarrer le timer
+                startTime = Date.now();
+                timerDiv.style.display = 'block';
+                timerInterval = setInterval(updateTimer, 100);
+
+            } catch (err) {
+                showStatus('Erreur : ' + err.message, 'error');
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && isRecording) {
+                mediaRecorder.stop();
+                isRecording = false;
+                
+                recordBtn.classList.remove('recording');
+                recordBtn.classList.add('processing');
+                recordBtn.querySelector('.text').textContent = 'Traitement...';
+                recordBtn.querySelector('.icon').textContent = '⏳';
+                
+                showStatus('⏳ Envoi et traitement en cours...', 'info');
+                
+                // Arrêter le timer
+                clearInterval(timerInterval);
+                timerDiv.style.display = 'none';
+            }
+        }
+
+        function updateTimer() {
+            const elapsed = Date.now() - startTime;
+            const seconds = Math.floor(elapsed / 1000);
+            const milliseconds = Math.floor((elapsed % 1000) / 100);
+            timerDiv.textContent = `${String(seconds).padStart(2, '0')}:${milliseconds}`;
+        }
+
+        async function sendAudioToN8n(audioBlob) {
+            const webhookUrl = webhookUrlInput.value.trim();
+            
+            if (!webhookUrl) {
+                showStatus('Erreur : Veuillez configurer l\'URL du webhook', 'error');
+                resetButton();
+                return;
+            }
+
+            try {
+                // Convertir en base64
+                const reader = new FileReader();
+                reader.readAsDataURL(audioBlob);
+                
+                reader.onloadend = async () => {
+                    const base64Audio = reader.result.split(',')[1];
+                    
+                    // Envoyer à n8n
+                    const response = await fetch(webhookUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            audio: base64Audio,
+                            mimeType: 'audio/mpeg'
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Erreur HTTP: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    
+                    // Afficher la transcription si disponible
+                    if (result.transcription) {
+                        transcriptionText.textContent = result.transcription;
+                        transcriptionDiv.classList.add('show');
+                    }
+
+                    // Afficher le statut
+                    if (result.reponse) {
+                        const type = result.reponse.type;
+                        const statusType = type === 'ok' ? 'success' : 
+                                         type === 'ko' ? 'error' : 'warning';
+                        showStatus(result.reponse.message, statusType);
+                    }
+
+                    // Jouer l'audio de réponse
+                    if (result.audio_base64) {
+                        const audioSrc = `data:audio/mpeg;base64,${result.audio_base64}`;
+                        audioResponse.src = audioSrc;
+                        audioPlayerDiv.classList.add('show');
+                        
+                        // Jouer automatiquement
+                        setTimeout(() => {
+                            audioResponse.play();
+                        }, 500);
+                    }
+
+                    resetButton();
+                };
+
+            } catch (err) {
+                showStatus('❌ Erreur : ' + err.message, 'error');
+                resetButton();
+            }
+        }
+
+        function showStatus(message, type) {
+            statusDiv.textContent = message;
+            statusDiv.className = 'status show ' + type;
+        }
+
+        function resetButton() {
+            recordBtn.classList.remove('recording', 'processing');
+            recordBtn.querySelector('.text').textContent = 'Appuyer';
+            recordBtn.querySelector('.icon').textContent = '🎤';
+        }
+    </script>
+</body>
+</html>
